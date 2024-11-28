@@ -1,6 +1,6 @@
 /**********************************************************************************************************************
  * \file main.c
- * \copyright Copyright (C) Infineon Technologies AG 2019
+ * \copyright Copyright (C) Infineon Technologies AG 2024
  *
  * Use of this file is subject to the terms of use agreed between (i) you or the company in which ordinary course of
  * business you are acting and (ii) Infineon Technologies AG or its licensees. If and as long as no such terms of use
@@ -27,7 +27,7 @@
 /*********************************************************************************************************************/
 /*-----------------------------------------------------Includes------------------------------------------------------*/
 /*********************************************************************************************************************/
-#include "cyhal.h"
+#include "cy_pdl.h"
 #include "cybsp.h"
 #include "cy_prot.h"
 #include "cy_sysfault.h"
@@ -114,7 +114,9 @@ int main(void)
     __enable_irq();
 
     /* Initialize retarget-io to use the debug UART port */
-    if (cy_retarget_io_init(CYBSP_DEBUG_UART_TX, CYBSP_DEBUG_UART_RX, CY_RETARGET_IO_BAUDRATE) != CY_RSLT_SUCCESS)
+    Cy_SCB_UART_Init(UART_HW, &UART_config, NULL);
+    Cy_SCB_UART_Enable(UART_HW);
+    if (cy_retarget_io_init(UART_HW) != CY_RSLT_SUCCESS)
     {
         CY_ASSERT(0);
     }
@@ -200,32 +202,30 @@ int main(void)
         if (g_shared[0] == IDLE)
         {
             /* Check if '1' key, '2' key, '3' key or '4' key was pressed */
-            if (cyhal_uart_getc(&cy_retarget_io_uart_obj, &uartReadValue, 1) == CY_RSLT_SUCCESS)
+            uartReadValue = Cy_SCB_UART_Get(UART_HW);
+            if (uartReadValue == '1')
             {
-                if (uartReadValue == '1')
-                {
-                    /* Ask CM7_0 to read address test0Addr */
-                    printf("Read 0x%08lx by CM7_0 requested\r\n", TEST0_ADDR);
-                    g_shared[0] = FROM_CM0_CM7_0_READ_TEST0_ADDR;
-                }
-                if (uartReadValue == '2')
-                {
-                    /* Ask CM7_0 to read address test1Addr */
-                    printf("Read 0x%08lx by CM7_0 requested\r\n", TEST1_ADDR);
-                    g_shared[0] = FROM_CM0_CM7_0_READ_TEST1_ADDR;
-                }
-                if (uartReadValue == '3')
-                {
-                    /* Ask CM7_1 to read address test0Addr */
-                    printf("Read 0x%08lx by CM7_1 requested\r\n", TEST0_ADDR);
-                    g_shared[0] = FROM_CM0_CM7_1_READ_TEST0_ADDR;
-                }
-                if (uartReadValue == '4')
-                {
-                    /* Ask CM7_1 to read address test1Addr */
-                    printf("Read 0x%08lx by CM7_1 requested\r\n", TEST1_ADDR);
-                    g_shared[0] = FROM_CM0_CM7_1_READ_TEST1_ADDR;
-                }
+                /* Ask CM7_0 to read address test0Addr */
+                printf("Read 0x%08lx by CM7_0 requested\r\n", TEST0_ADDR);
+                g_shared[0] = FROM_CM0_CM7_0_READ_TEST0_ADDR;
+            }
+            if (uartReadValue == '2')
+            {
+                /* Ask CM7_0 to read address test1Addr */
+                printf("Read 0x%08lx by CM7_0 requested\r\n", TEST1_ADDR);
+                g_shared[0] = FROM_CM0_CM7_0_READ_TEST1_ADDR;
+            }
+            if (uartReadValue == '3')
+            {
+               /* Ask CM7_1 to read address test0Addr */
+               printf("Read 0x%08lx by CM7_1 requested\r\n", TEST0_ADDR);
+               g_shared[0] = FROM_CM0_CM7_1_READ_TEST0_ADDR;
+            }
+            if (uartReadValue == '4')
+            {
+                /* Ask CM7_1 to read address test1Addr */
+                printf("Read 0x%08lx by CM7_1 requested\r\n", TEST1_ADDR);
+                g_shared[0] = FROM_CM0_CM7_1_READ_TEST1_ADDR;
             }
         }
 
@@ -254,7 +254,7 @@ int main(void)
                 exceptionHalt = true;
             }
         }
-        cyhal_system_delay_ms(SLEEP_TIME_MS);
+        Cy_SysLib_Delay(SLEEP_TIME_MS);
     }
 }
 
